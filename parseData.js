@@ -6,6 +6,9 @@ const getRandomColors = require('./modules/getRandomColors');
   try {
     const data = fs.readFileSync('data.json', 'utf-8');
     const scholarships = JSON.parse(data);
+    scholarships.forEach(s => {
+      s.requiresEssay = s.awardVerificationCriteriaDescription && s.awardVerificationCriteriaDescription.toLowerCase().includes("essay");
+    });
     const categories = [
       { type: 'Black', keywords: ['african american', 'black', 'minority', 'diversity'] },
       { type: 'Women', keywords: ['women only', 'for women', 'female', 'women'] },
@@ -15,9 +18,8 @@ const getRandomColors = require('./modules/getRandomColors');
       { type: 'Hispanic', keywords: ['hispanic', 'latino', 'latina', 'latinx'] },
       { type: 'Asian', keywords: ['asian', 'pacific islander', 'south asian', 'east asian'] },
       { type: 'First Generation', keywords: ['first generation', 'first-gen', 'low-income'] },
-      { type: 'Disability', keywords: ['disability', 'disabled', 'handicap', 'special needs'] },
+      { type: 'Disability', keywords: ['disability', 'disabled', 'handicap', 'special needs'] }
     ];
-    
     function matchesCategory(scholarship, categoryKeywords) {
       const lowerKeywords = categoryKeywords.map(kw => kw.toLowerCase());
       const fields = [scholarship.eligibilityCriteriaDescription, scholarship.programSelfDescription, scholarship.blurb];
@@ -31,14 +33,12 @@ const getRandomColors = require('./modules/getRandomColors');
       }
       return false;
     }
-    
     function assignCategory(scholarship) {
       for (const category of categories) {
         if (matchesCategory(scholarship, category.keywords)) return category.type;
       }
       return 'Other';
     }
-    
     const total = scholarships.length;
     const overallNeedBasedCount = scholarships.filter(s => s.isNeedBased).length;
     const overallNeedBasedPercentage = total > 0 ? ((overallNeedBasedCount / total) * 100).toFixed(2) : 0;
@@ -68,17 +68,14 @@ const getRandomColors = require('./modules/getRandomColors');
         }))
       };
     });
-    
     output.forEach(category => {
       console.log(`${category.type}: ${category.percentage}% of scholarships (${category.count} total), ${category.needBasedPercentage}% need-based`);
     });
     console.log(`\nOverall Need-Based Scholarships: ${overallNeedBasedPercentage}% of all scholarships (${overallNeedBasedCount} out of ${total})`);
-    
     const width = 800;
     const height = 600;
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
     if (!fs.existsSync('./images')) fs.mkdirSync('./images', { recursive: true });
-    
     const labels = output.map(cat => cat.type);
     const dataPercentages = output.map(cat => parseFloat(cat.percentage));
     const backgroundColorsSpecial = getRandomColors(labels.length, 0.6);
@@ -101,10 +98,8 @@ const getRandomColors = require('./modules/getRandomColors');
         }
       }
     };
-    
     const imageBufferSpecial = await chartJSNodeCanvas.renderToBuffer(configSpecialGroups);
     fs.writeFileSync('./images/special_groups_pie_chart.png', imageBufferSpecial);
-    
     const needBasedCount = overallNeedBasedCount;
     const meritBasedCount = total - overallNeedBasedCount;
     const labelsNeedBased = ['Need-based', 'Merit-based'];
@@ -128,10 +123,8 @@ const getRandomColors = require('./modules/getRandomColors');
         }
       }
     };
-    
     const imageBufferNeedBased = await chartJSNodeCanvas.renderToBuffer(configNeedBased);
     fs.writeFileSync('./images/need_based_vs_merit_pie_chart.png', imageBufferNeedBased);
-    
     const validScholarships = scholarships.filter(s => s.scholarshipMaximumAward !== null && !isNaN(s.scholarshipMaximumAward));
     const sum = validScholarships.reduce((acc, s) => acc + Number(s.scholarshipMaximumAward), 0);
     const avg = validScholarships.length > 0 ? sum / validScholarships.length : 0;
@@ -140,7 +133,6 @@ const getRandomColors = require('./modules/getRandomColors');
     } else {
       console.log("No valid scholarshipMaximumAward values.");
     }
-  
     if (validScholarships.length > 0) {
       let awards = validScholarships.map(s => Number(s.scholarshipMaximumAward));
       let minAward = Math.min(...awards);
@@ -182,6 +174,33 @@ const getRandomColors = require('./modules/getRandomColors');
     } else {
       console.log('No valid scholarshipMaximumAward values to generate histogram.');
     }
+    const essayRequiredScholarships = scholarships.filter(s => s.requiresEssay);
+    const essayRequiredCount = essayRequiredScholarships.length;
+    const essayRequiredPercentage = total > 0 ? ((essayRequiredCount / total) * 100).toFixed(2) : 0;
+    console.log(`Percentage of scholarships that require an essay: ${essayRequiredPercentage}%`);
+    const labelsEssay = ['Requires Essay', 'Does Not Require Essay'];
+    const backgroundColorsEssay = getRandomColors(labelsEssay.length, 0.6);
+    const borderColorsEssay = getRandomColors(labelsEssay.length, 1);
+    const configEssay = {
+      type: 'pie',
+      data: {
+        labels: labelsEssay,
+        datasets: [{
+          label: 'Essay Requirement',
+          data: [essayRequiredCount, total - essayRequiredCount],
+          backgroundColor: backgroundColorsEssay,
+          borderColor: borderColorsEssay,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        plugins: {
+          title: { display: true, text: 'Essay Requirement in Scholarships' }
+        }
+      }
+    };
+    const imageBufferEssay = await chartJSNodeCanvas.renderToBuffer(configEssay);
+    fs.writeFileSync('./images/essay_requirement_pie_chart.png', imageBufferEssay);
   } catch (error) {
     console.error(error);
   }
