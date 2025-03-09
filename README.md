@@ -14,5 +14,9 @@ Women: 5.14% of scholarships (514 total), 44.55% need-based
 LGBT: 0.38% of scholarships (38 total), 28.95% need-based
 Veterans: 3.34% of scholarships (334 total), 31.14% need-based
 Native American: 0.61% of scholarships (61 total), 49.18% need-based
-Other: 86.05% of scholarships (8605 total), 37.02% need-based`
+Other: 86.05% of scholarships (8605 total), 37.02% need-based
+
+Overall Need-Based Scholarships: 37.40% of all scholarships (3740 out of 10000)
+Average Scholarship Maximum Award: $2914
 ``` 
+

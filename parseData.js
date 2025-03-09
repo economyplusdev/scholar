@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
+const getRandomColors = require('./modules/getRandomColors');
 
 (async () => {
   try {
@@ -10,7 +11,11 @@ const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
       { type: 'Women', keywords: ['women only', 'for women', 'female', 'women'] },
       { type: 'LGBT', keywords: ['lgbtqia', 'lgbtq+', 'lgbt', 'lgbtq'] },
       { type: 'Veterans', keywords: ['veteran', 'military', 'armed forces'] },
-      { type: 'Native American', keywords: ['native american', 'indigenous', 'tribal'] }
+      { type: 'Native American', keywords: ['native american', 'indigenous', 'tribal'] },
+      { type: 'Hispanic', keywords: ['hispanic', 'latino', 'latina', 'latinx'] },
+      { type: 'Asian', keywords: ['asian', 'pacific islander', 'south asian', 'east asian'] },
+      { type: 'First Generation', keywords: ['first generation', 'first-gen', 'low-income'] },
+      { type: 'Disability', keywords: ['disability', 'disabled', 'handicap', 'special needs'] },
     ];
     
     function matchesCategory(scholarship, categoryKeywords) {
@@ -68,11 +73,16 @@ const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
       console.log(`${category.type}: ${category.percentage}% of scholarships (${category.count} total), ${category.needBasedPercentage}% need-based`);
     });
     console.log(`\nOverall Need-Based Scholarships: ${overallNeedBasedPercentage}% of all scholarships (${overallNeedBasedCount} out of ${total})`);
+    
     const width = 800;
     const height = 600;
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+    if (!fs.existsSync('./images')) fs.mkdirSync('./images', { recursive: true });
+    
     const labels = output.map(cat => cat.type);
     const dataPercentages = output.map(cat => parseFloat(cat.percentage));
+    const backgroundColorsSpecial = getRandomColors(labels.length, 0.6);
+    const borderColorsSpecial = getRandomColors(labels.length, 1);
     const configSpecialGroups = {
       type: 'pie',
       data: {
@@ -80,68 +90,98 @@ const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
         datasets: [{
           label: 'Percentage of Scholarships',
           data: dataPercentages,
-          backgroundColor: [
-            'rgba(255, 99, 132, 0.6)',
-            'rgba(54, 162, 235, 0.6)',
-            'rgba(255, 206, 86, 0.6)',
-            'rgba(75, 192, 192, 0.6)',
-            'rgba(153, 102, 255, 0.6)',
-            'rgba(201, 203, 207, 0.6)'
-          ],
-          borderColor: [
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-            'rgba(75, 192, 192, 1)',
-            'rgba(153, 102, 255, 1)',
-            'rgba(201, 203, 207, 1)'
-          ],
+          backgroundColor: backgroundColorsSpecial,
+          borderColor: borderColorsSpecial,
           borderWidth: 1
         }]
       },
       options: {
         plugins: {
-          title: {
-            display: true,
-            text: 'Special Group Scholarships (%)'
-          }
+          title: { display: true, text: 'Special Group Scholarships (%)' }
         }
       }
     };
-    if (!fs.existsSync('./images')) fs.mkdirSync('./images', { recursive: true });
+    
     const imageBufferSpecial = await chartJSNodeCanvas.renderToBuffer(configSpecialGroups);
     fs.writeFileSync('./images/special_groups_pie_chart.png', imageBufferSpecial);
+    
     const needBasedCount = overallNeedBasedCount;
     const meritBasedCount = total - overallNeedBasedCount;
+    const labelsNeedBased = ['Need-based', 'Merit-based'];
+    const backgroundColorsNeedBased = getRandomColors(labelsNeedBased.length, 0.6);
+    const borderColorsNeedBased = getRandomColors(labelsNeedBased.length, 1);
     const configNeedBased = {
       type: 'pie',
       data: {
-        labels: ['Need-based', 'Merit-based'],
+        labels: labelsNeedBased,
         datasets: [{
           label: 'Scholarship Type',
           data: [needBasedCount, meritBasedCount],
-          backgroundColor: [
-            'rgba(75, 192, 192, 0.6)',
-            'rgba(255, 159, 64, 0.6)'
-          ],
-          borderColor: [
-            'rgba(75, 192, 192, 1)',
-            'rgba(255, 159, 64, 1)'
-          ],
+          backgroundColor: backgroundColorsNeedBased,
+          borderColor: borderColorsNeedBased,
           borderWidth: 1
         }]
       },
       options: {
         plugins: {
-          title: {
-            display: true,
-            text: 'Need-based vs Merit-based Scholarships'
-          }
+          title: { display: true, text: 'Need-based vs Merit-based Scholarships' }
         }
       }
     };
+    
     const imageBufferNeedBased = await chartJSNodeCanvas.renderToBuffer(configNeedBased);
     fs.writeFileSync('./images/need_based_vs_merit_pie_chart.png', imageBufferNeedBased);
+    
+    const validScholarships = scholarships.filter(s => s.scholarshipMaximumAward !== null && !isNaN(s.scholarshipMaximumAward));
+    const sum = validScholarships.reduce((acc, s) => acc + Number(s.scholarshipMaximumAward), 0);
+    const avg = validScholarships.length > 0 ? sum / validScholarships.length : 0;
+    if (validScholarships.length > 0) {
+      console.log(`Average Scholarship Maximum Award: ${Math.round(avg)}$`);
+    } else {
+      console.log("No valid scholarshipMaximumAward values.");
+    }
+  
+    if (validScholarships.length > 0) {
+      let awards = validScholarships.map(s => Number(s.scholarshipMaximumAward));
+      let minAward = Math.min(...awards);
+      let maxAward = Math.max(...awards);
+      const numBins = 10;
+      let binWidth = (maxAward - minAward) / numBins;
+      if (binWidth === 0) { binWidth = 1; }
+      let bins = new Array(numBins).fill(0);
+      let binLabels = [];
+      for (let i = 0; i < numBins; i++) {
+        let binStart = minAward + i * binWidth;
+        let binEnd = minAward + (i + 1) * binWidth;
+        binLabels.push(`${binStart.toFixed(0)} - ${binEnd.toFixed(0)}`);
+      }
+      for (let award of awards) {
+        let index = Math.floor((award - minAward) / binWidth);
+        if (index >= numBins) index = numBins - 1;
+        bins[index]++;
+      }
+      const configHistogram = {
+        type: 'bar',
+        data: {
+          labels: binLabels,
+          datasets: [{
+            label: 'Count of Scholarships',
+            data: bins,
+            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true } },
+          plugins: { title: { display: true, text: 'Distribution of Scholarship Maximum Awards' } }
+        }
+      };
+      const imageBufferHistogram = await chartJSNodeCanvas.renderToBuffer(configHistogram);
+      fs.writeFileSync('./images/scholarship_awards_histogram_bar_chart.png', imageBufferHistogram);
+    } else {
+      console.log('No valid scholarshipMaximumAward values to generate histogram.');
+    }
   } catch (error) {
     console.error(error);
   }
