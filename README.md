@@ -18,6 +18,8 @@ Other: 86.05% of scholarships (8605 total), 37.02% need-based
 
 Overall Need-Based Scholarships: 37.40% of all scholarships (3740 out of 10000)
 Average Scholarship Maximum Award: $2914
-Percentage of scholarships that require an essay: 33.49%
+
+Percentage of scholarships that require a letter of recommendation: 19.54%
+Percentage of scholarships that require both an essay and a letter of recommendation: 13.72%
 ``` 
 
