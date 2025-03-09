@@ -8,7 +8,16 @@ const getRandomColors = require('./modules/getRandomColors');
     const scholarships = JSON.parse(data);
     scholarships.forEach(s => {
       s.requiresEssay = s.awardVerificationCriteriaDescription && s.awardVerificationCriteriaDescription.toLowerCase().includes("essay");
+      s.requiresLetter = s.awardVerificationCriteriaDescription && s.awardVerificationCriteriaDescription.toLowerCase().includes("recommendation");
     });
+    const total = scholarships.length;
+    const letterRequiredCount = scholarships.filter(s => s.requiresLetter).length;
+    const letterRequiredPercentage = total > 0 ? ((letterRequiredCount / total) * 100).toFixed(2) : 0;
+    const bothRequiredCount = scholarships.filter(s => s.requiresEssay && s.requiresLetter).length;
+    const bothRequiredPercentage = total > 0 ? ((bothRequiredCount / total) * 100).toFixed(2) : 0;
+    console.log(`Percentage of scholarships that require a letter of recommendation: ${letterRequiredPercentage}%`);
+    console.log(`Percentage of scholarships that require both an essay and a letter of recommendation: ${bothRequiredPercentage}%`);
+
     const categories = [
       { type: 'Black', keywords: ['african american', 'black', 'minority', 'diversity'] },
       { type: 'Women', keywords: ['women only', 'for women', 'female', 'women'] },
@@ -39,7 +48,6 @@ const getRandomColors = require('./modules/getRandomColors');
       }
       return 'Other';
     }
-    const total = scholarships.length;
     const overallNeedBasedCount = scholarships.filter(s => s.isNeedBased).length;
     const overallNeedBasedPercentage = total > 0 ? ((overallNeedBasedCount / total) * 100).toFixed(2) : 0;
     const assignedScholarships = scholarships.map(s => ({ ...s, assignedCategory: assignCategory(s) }));
@@ -174,33 +182,6 @@ const getRandomColors = require('./modules/getRandomColors');
     } else {
       console.log('No valid scholarshipMaximumAward values to generate histogram.');
     }
-    const essayRequiredScholarships = scholarships.filter(s => s.requiresEssay);
-    const essayRequiredCount = essayRequiredScholarships.length;
-    const essayRequiredPercentage = total > 0 ? ((essayRequiredCount / total) * 100).toFixed(2) : 0;
-    console.log(`Percentage of scholarships that require an essay: ${essayRequiredPercentage}%`);
-    const labelsEssay = ['Requires Essay', 'Does Not Require Essay'];
-    const backgroundColorsEssay = getRandomColors(labelsEssay.length, 0.6);
-    const borderColorsEssay = getRandomColors(labelsEssay.length, 1);
-    const configEssay = {
-      type: 'pie',
-      data: {
-        labels: labelsEssay,
-        datasets: [{
-          label: 'Essay Requirement',
-          data: [essayRequiredCount, total - essayRequiredCount],
-          backgroundColor: backgroundColorsEssay,
-          borderColor: borderColorsEssay,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        plugins: {
-          title: { display: true, text: 'Essay Requirement in Scholarships' }
-        }
-      }
-    };
-    const imageBufferEssay = await chartJSNodeCanvas.renderToBuffer(configEssay);
-    fs.writeFileSync('./images/essay_requirement_pie_chart.png', imageBufferEssay);
   } catch (error) {
     console.error(error);
   }
